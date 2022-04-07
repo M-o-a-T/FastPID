@@ -3,7 +3,7 @@ A fast 32-bit fixed-point PID controller for Arduino
 
 ## About 
 
-This PID controller is faster than alternatives for Arduino becuase it avoids expensive floating point operations. The PID controller is configured with floating point coefficients and translates them to fixed point internally. This imposes limitations on the domain of the coefficients. Setting the I and D terms to zero makes the controller run faster. The controller is configured to run at a fixed frequency and calling code is responsible for running at that frequency. The `Ki` and `Kd` parameters are scaled by the frequency to save time during the `step()` operation. 
+This PID controller is faster than alternatives for Arduino because it exclusively uses fixed-point operations. The PID controller is configured with floating point coefficients scaled by the `PARAM_MULT` constant. This imposes limitations on the domain of the coefficients. Setting the I and D terms to zero makes the controller run faster. The controller is configured to run at a fixed frequency and calling code is responsible for running at that frequency.
 
 ## Description of Coefficients 
 
@@ -24,13 +24,13 @@ The controller checks for parameter domain violations and won't operate if a coe
 
 ## Execution Frequency
 
-**The execution frequency is not automatically detected as of version v1.1.0** This greatly improves the controller performance. Instead the `Ki` and `Kd` terms are scaled in the configuration step. It's essential to call `step()` at the rate that you specify. 
+**The execution frequency is not automatically detected.** This greatly improves the controller performance. It's essential to call `step()` at the rate that you specify. 
 
 ## Input and Output 
 
-The input and the setpoint are an `int16_t` this matches the width of Analog pins and accomodate negative readings and setpoints. The output of the PID is an `int16_t`. The actual bit-width and signedness of the output can be configured. 
+The input and the setpoint are an `int16_t`. This matches the width of Analog pins and accomodates negative readings and setpoints. The output of the PID is an `int16_t`. The actual bit-width and signedness of the output can be configured. 
   
-  * `bits` - The output width will be limited to values inside of this bit range. Valid values are 1 through 16 
+  * `bits` - The output width will be limited to values within this bit range. Valid values are 1 through 16 
   * `sign` If `true` the output range is [-2^(bits-1), -2^(bits-1)-1]. If `false` output range is [0, 2^(bits-1)-1]. **The maximum output value of the controller is 32767 (even in 16 bit unsigned mode)** 
 
 ## Performance 
@@ -55,7 +55,7 @@ FastPID()
 Construct a default controller. The default coefficients are all zero. Do not use a default-constructed controller until after you've called `setCoefficients()` and `setOutputconfig()`
 
 ```c++
-FastPID(float kp, float ki, float kd, float hz, int bits=16, bool sign=false)
+FastPID(uint32_t kp, uint32_t ki, uint32_t kd, uint32_t hz, int bits=16, bool sign=false)
 ```
 Construct a controller that's ready to go. Calls the following:
 ```c++
@@ -63,9 +63,11 @@ configure(kp, ki, kd, hz, bits, sign);
 ```
 
 ```c++
-bool setCoefficients(float kp, float ki, float kd, float hz);
+bool setCoefficients(uint32_t kp, uint32_t ki, uint32_t kd, uint32_t hz);
 ```
-Set the PID coefficients. The coefficients `ki` and `kd` are scaled by the value of `hz`. The `hz` value informs the PID of the rate you will call `step()`. Calling code is responsible for calling `step()` at the rate in `hz`. Returns `false` if a configuration error has occured. Which could be from a previous call.
+Set the PID coefficients. The `hz` value informs the PID of the rate you will call `step()`. Calling code is responsible for calling `step()` at the rate in `hz`. Returns `false` if a configuration error has occured. Which could be from a previous call.
+
+Do not pre-scale `ki` and `kd` by `hz`; the controller will do this internally.
 
 ```c++
 bool setOutputConfig(int bits, bool sign);
@@ -94,7 +96,7 @@ Set the ouptut range directly. The effective range is:
 * Min: -32768 to 32766
 * Max: -32767 to 32767
 
-Min must be greater than max.
+Min must be smaller than max.
 
 Returns `false` if a configuration error has occured. Which could be from a previous call.
 
@@ -104,7 +106,7 @@ void clear();
 Reset the controller. This should be done before changing the configuration in any way.
 
 ```c++
-bool configure(float kp, float ki, float kd, float hz, int bits=16, bool sign=false);
+bool configure(uint32_t kp, uint32_t ki, uint32_t kd, uint32_t hz, int bits=16, bool sign=false);
 ```
 Bulk configure the controller. Equivalent to:
 
@@ -174,9 +176,12 @@ of your system without having to add complex, invalid and difficult to understan
 #define PIN_SETPOINT  A1
 #define PIN_OUTPUT    9
 
-float Kp=0.1, Ki=0.5, Kd=0.1, Hz=10;
-int output_bits = 8;
-bool output_signed = false;
+const uint32_t Kp=PARAM_MULT/10; // 0.1
+const uint32_t Ki=PARAM_MULT/2; // 0.5
+const uint32_t Kd=PARAM_MULT/10; // 0.1
+const uint32_t Hz=10;
+const int output_bits = 8;
+const bool output_signed = false;
 
 FastPID myPID(Kp, Ki, Kd, Hz, output_bits, output_signed);
 

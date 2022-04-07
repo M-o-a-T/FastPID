@@ -24,18 +24,18 @@ public:
     clear();
   }
 
-  FastPID(float kp, float ki, float kd, float hz, int bits=16, bool sign=false)
+  FastPID(uint32_t kp, uint32_t ki, uint32_t kd, uint32_t hz, int bits=16, bool sign=false)
   {
     configure(kp, ki, kd, hz, bits, sign);
   }
 
   ~FastPID();
 
-  bool setCoefficients(float kp, float ki, float kd, float hz);
+  bool setCoefficients(uint32_t kp, uint32_t ki, uint32_t kd, uint32_t hz);
   bool setOutputConfig(int bits, bool sign);
   bool setOutputRange(int16_t min, int16_t max);
   void clear();
-  bool configure(float kp, float ki, float kd, float hz, int bits=16, bool sign=false);
+  bool configure(uint32_t kp, uint32_t ki, uint32_t kd, uint32_t hz, int bits=16, bool sign=false);
   int16_t step(int16_t sp, int16_t fb);
 
   bool err() {
@@ -44,10 +44,7 @@ public:
 
 private:
 
-  uint32_t floatToParam(float); 
   void setCfgErr(); 
-
-private:
 
   // Configuration
   uint32_t _p, _i, _d;
